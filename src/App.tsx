@@ -5,8 +5,10 @@ import { ProjectView } from './components/ProjectView';
 import { RecordModal } from './components/RecordModal';
 import { CategoryManager } from './components/CategoryManager';
 import { ConfirmModal } from './components/ConfirmModal';
+import { QuickAddModal } from './components/QuickAddModal';
+import { ProjectLogsModal } from './components/ProjectLogsModal';
 import { RecordItem } from './types';
-import { Settings, Download, Upload, Menu } from 'lucide-react';
+import { Settings, Download, Upload, Menu, Plus, Clock } from 'lucide-react';
 
 export default function App() {
   const {
@@ -32,6 +34,8 @@ export default function App() {
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => window.innerWidth >= 768);
   const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState(false);
+  const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
+  const [isLogsModalOpen, setIsLogsModalOpen] = useState(false);
   
   const [recordModalState, setRecordModalState] = useState<{
     isOpen: boolean;
@@ -56,6 +60,7 @@ export default function App() {
   const activeProject = state.projects.find(p => p.id === activeProjectId);
   const projectRecords = state.records.filter(r => r.projectId === activeProjectId);
   const projectCategories = state.categories.filter(c => c.projectId === activeProjectId);
+  const projectLogs = state.logs?.filter(l => l.projectId === activeProjectId) || [];
 
   const confirmAction = (title: string, message: string, onConfirm: () => void) => {
     setConfirmState({
@@ -149,7 +154,7 @@ export default function App() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-100 font-sans text-gray-900 overflow-hidden">
+    <div className="flex h-screen bg-gray-100 font-sans text-gray-900 overflow-hidden relative">
       {/* Sidebar */}
       <Sidebar
         projects={state.projects}
@@ -177,6 +182,14 @@ export default function App() {
             <h1 className="text-lg font-bold text-gray-800 truncate max-w-[100px] sm:max-w-none">工作记录台</h1>
           </div>
           <div className="flex items-center space-x-1 sm:space-x-2">
+            <button
+              onClick={() => setIsLogsModalOpen(true)}
+              className="flex items-center px-2 py-1 text-xs font-medium text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-md transition-colors"
+            >
+              <Clock className="w-4 h-4 sm:w-3.5 sm:h-3.5 sm:mr-1" />
+              <span className="hidden sm:inline">日志</span>
+            </button>
+            <div className="w-px h-4 bg-gray-300 mx-1"></div>
             <button
               onClick={() => setIsCategoryManagerOpen(true)}
               className="flex items-center px-2 py-1 text-xs font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
@@ -229,6 +242,15 @@ export default function App() {
         )}
       </div>
 
+      {/* Floating Action Button */}
+      <button
+        onClick={() => setIsQuickAddOpen(true)}
+        className="absolute bottom-6 right-6 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all flex items-center justify-center z-40 focus:outline-none focus:ring-4 focus:ring-blue-300"
+        aria-label="快速添加记录"
+      >
+        <Plus className="w-6 h-6" />
+      </button>
+
       {/* Modals */}
       <RecordModal
         isOpen={recordModalState.isOpen}
@@ -250,6 +272,17 @@ export default function App() {
         onDelete={handleDeleteRecord}
       />
 
+      <QuickAddModal
+        isOpen={isQuickAddOpen}
+        onClose={() => setIsQuickAddOpen(false)}
+        projects={state.projects}
+        categories={state.categories}
+        activeProjectId={activeProjectId}
+        onSave={(recordData) => {
+          addRecord(recordData as any);
+        }}
+      />
+
       <CategoryManager
         isOpen={isCategoryManagerOpen}
         onClose={() => setIsCategoryManagerOpen(false)}
@@ -262,6 +295,13 @@ export default function App() {
         onUpdate={updateCategory}
         onDelete={handleDeleteCategory}
         onReorder={reorderCategories}
+      />
+
+      <ProjectLogsModal
+        isOpen={isLogsModalOpen}
+        onClose={() => setIsLogsModalOpen(false)}
+        logs={projectLogs}
+        projectName={activeProject?.name || ''}
       />
 
       <ConfirmModal

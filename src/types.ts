@@ -25,8 +25,16 @@ export interface Project {
   order: number;
 }
 
+export interface ProjectLog {
+  id: string;
+  projectId: string;
+  content: string;
+  timestamp: number;
+}
+
 export interface AppState {
   projects: Project[];
   categories: Category[];
   records: RecordItem[];
+  logs: ProjectLog[];
 }

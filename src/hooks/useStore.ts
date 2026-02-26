@@ -36,7 +36,8 @@ const defaultState: AppState = {
       createdAt: Date.now(),
       order: 1,
     }
-  ]
+  ],
+  logs: []
 };
 
 export function useStore() {
@@ -52,6 +53,10 @@ export function useStore() {
             ...c,
             projectId: c.projectId || defaultProjectId
           }));
+        }
+        // Migration: add logs if missing
+        if (!parsed.logs) {
+          parsed.logs = [];
         }
         return parsed;
       } catch (e) {
@@ -75,10 +80,17 @@ export function useStore() {
         { id: generateId(), projectId: newProjectId, name: '开发', order: 2 },
         { id: generateId(), projectId: newProjectId, name: '测试', order: 3 },
       ];
+      const newLog = {
+        id: generateId(),
+        projectId: newProjectId,
+        content: `增加项目: ${name}`,
+        timestamp: Date.now()
+      };
       return {
         ...prev,
         projects: [...prev.projects, newProject],
-        categories: [...prev.categories, ...defaultCategories]
+        categories: [...prev.categories, ...defaultCategories],
+        logs: [...(prev.logs || []), newLog]
       };
     });
   }, []);
@@ -95,7 +107,8 @@ export function useStore() {
       ...prev,
       projects: prev.projects.filter(p => p.id !== id),
       categories: prev.categories.filter(c => c.projectId !== id),
-      records: prev.records.filter(r => r.projectId !== id)
+      records: prev.records.filter(r => r.projectId !== id),
+      logs: (prev.logs || []).filter(l => l.projectId !== id)
     }));
   }, []);
 
@@ -149,22 +162,62 @@ export function useStore() {
         createdAt: Date.now(),
         order: projectRecords.length
       };
-      return { ...prev, records: [...prev.records, newRecord] };
+      
+      const logContent = record.type === 'milestone' 
+        ? `增加里程碑: ${record.title}` 
+        : `增加记录: ${record.title}`;
+        
+      const newLog = {
+        id: generateId(),
+        projectId: record.projectId,
+        content: logContent,
+        timestamp: Date.now()
+      };
+
+      return { ...prev, records: [...prev.records, newRecord], logs: [...(prev.logs || []), newLog] };
     });
   }, []);
 
   const updateRecord = useCallback((id: string, updates: Partial<RecordItem>) => {
-    setState(prev => ({
-      ...prev,
-      records: prev.records.map(r => r.id === id ? { ...r, ...updates } : r)
-    }));
+    setState(prev => {
+      const oldRecord = prev.records.find(r => r.id === id);
+      let newLogs = prev.logs || [];
+      
+      if (oldRecord && oldRecord.type === 'todo' && updates.type && updates.type !== 'todo') {
+        newLogs = [...newLogs, {
+          id: generateId(),
+          projectId: oldRecord.projectId,
+          content: `完成待办任务: ${oldRecord.title}`,
+          timestamp: Date.now()
+        }];
+      }
+
+      return {
+        ...prev,
+        records: prev.records.map(r => r.id === id ? { ...r, ...updates } : r),
+        logs: newLogs
+      };
+    });
   }, []);
 
   const deleteRecord = useCallback((id: string) => {
-    setState(prev => ({
-      ...prev,
-      records: prev.records.filter(r => r.id !== id)
-    }));
+    setState(prev => {
+      const recordToDelete = prev.records.find(r => r.id === id);
+      if (!recordToDelete) return prev;
+      
+      const newLog = {
+        id: generateId(),
+        projectId: recordToDelete.projectId,
+        content: `删除记录: ${recordToDelete.title}`,
+        timestamp: Date.now()
+      };
+
+      return {
+        ...prev,
+        records: prev.records.filter(r => r.id !== id),
+        logs: [...(prev.logs || []), newLog]
+      };
+    });
   }, []);
 
   const moveRecord = useCallback((recordId: string, newCategoryId: string, newOrder: number) => {
