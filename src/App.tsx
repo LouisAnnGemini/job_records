@@ -6,7 +6,7 @@ import { RecordModal } from './components/RecordModal';
 import { CategoryManager } from './components/CategoryManager';
 import { ConfirmModal } from './components/ConfirmModal';
 import { RecordItem } from './types';
-import { Settings, Download, Upload } from 'lucide-react';
+import { Settings, Download, Upload, Menu } from 'lucide-react';
 
 export default function App() {
   const {
@@ -30,6 +30,7 @@ export default function App() {
     state.projects.length > 0 ? state.projects[0].id : null
   );
 
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => window.innerWidth >= 768);
   const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState(false);
   
   const [recordModalState, setRecordModalState] = useState<{
@@ -148,7 +149,7 @@ export default function App() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-100 font-sans text-gray-900">
+    <div className="flex h-screen bg-gray-100 font-sans text-gray-900 overflow-hidden">
       {/* Sidebar */}
       <Sidebar
         projects={state.projects}
@@ -158,35 +159,45 @@ export default function App() {
         onUpdateProject={updateProject}
         onDeleteProject={handleDeleteProject}
         onReorderProjects={reorderProjects}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
       />
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 h-full">
         {/* Header */}
-        <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between shadow-sm z-10">
-          <h1 className="text-xl font-bold text-gray-800">工作记录台</h1>
-          <div className="flex items-center space-x-3">
+        <header className="bg-white border-b border-gray-200 px-4 py-2 flex items-center justify-between shadow-sm z-10 shrink-0">
+          <div className="flex items-center">
+            <button
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="mr-2 sm:mr-3 p-1.5 text-gray-500 hover:bg-gray-100 rounded-md transition-colors"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <h1 className="text-lg font-bold text-gray-800 truncate max-w-[100px] sm:max-w-none">工作记录台</h1>
+          </div>
+          <div className="flex items-center space-x-1 sm:space-x-2">
             <button
               onClick={() => setIsCategoryManagerOpen(true)}
-              className="flex items-center px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+              className="flex items-center px-2 py-1 text-xs font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
             >
-              <Settings className="w-4 h-4 mr-1.5" />
-              分类管理
+              <Settings className="w-4 h-4 sm:w-3.5 sm:h-3.5 sm:mr-1" />
+              <span className="hidden sm:inline">分类管理</span>
             </button>
-            <div className="w-px h-5 bg-gray-300 mx-2"></div>
+            <div className="w-px h-4 bg-gray-300 mx-1"></div>
             <button
               onClick={handleExport}
-              className="flex items-center px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-md transition-colors"
+              className="flex items-center px-2 py-1 text-xs font-medium text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-md transition-colors"
             >
-              <Download className="w-4 h-4 mr-1.5" />
-              导出
+              <Download className="w-4 h-4 sm:w-3.5 sm:h-3.5 sm:mr-1" />
+              <span className="hidden sm:inline">导出</span>
             </button>
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="flex items-center px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
+              className="flex items-center px-2 py-1 text-xs font-medium text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
             >
-              <Upload className="w-4 h-4 mr-1.5" />
-              导入
+              <Upload className="w-4 h-4 sm:w-3.5 sm:h-3.5 sm:mr-1" />
+              <span className="hidden sm:inline">导入</span>
             </button>
             <input
               type="file"

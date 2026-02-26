@@ -17,7 +17,7 @@ import {
   DragOverlay,
 } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
-import { Flag, CheckSquare } from 'lucide-react';
+import { Flag, CheckSquare, Maximize2, Minimize2, LayoutDashboard, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface ProjectViewProps {
   project: Project;
@@ -39,6 +39,8 @@ export function ProjectView({
   onMoveRecord,
 }: ProjectViewProps) {
   const [activeRecord, setActiveRecord] = useState<RecordItem | null>(null);
+  const [expandedSection, setExpandedSection] = useState<'milestones' | 'todos' | 'kanban' | null>(null);
+  const [showOverview, setShowOverview] = useState(() => window.innerWidth >= 768);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -147,111 +149,166 @@ export function ProjectView({
     });
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-white overflow-hidden">
-      <div className="p-6 border-b border-gray-200">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">{project.name}</h1>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Milestones Area */}
-          <div className="bg-red-50 rounded-xl p-4 border border-red-100 shadow-sm">
-            <div className="flex items-center mb-3 text-red-700">
-              <Flag className="w-5 h-5 mr-2" />
-              <h2 className="font-semibold text-lg">项目里程碑</h2>
-            </div>
-            <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
-              {milestones.length === 0 ? (
-                <p className="text-sm text-red-400 italic">暂无里程碑记录</p>
-              ) : (
-                milestones.map(m => (
-                  <div
-                    key={m.id}
-                    onClick={() => onEditRecord(m)}
-                    className="bg-white p-3 rounded-lg border border-red-200 shadow-sm cursor-pointer hover:shadow-md transition-shadow flex justify-between items-center"
-                  >
-                    <span className="font-medium text-gray-800">{m.title}</span>
-                    <span className="text-sm font-semibold text-red-600 bg-red-100 px-2 py-1 rounded-full">
-                      {m.date}
-                    </span>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* To-Do Area */}
-          <div className="bg-blue-50 rounded-xl p-4 border border-blue-100 shadow-sm">
-            <div className="flex items-center mb-3 text-blue-700">
-              <CheckSquare className="w-5 h-5 mr-2" />
-              <h2 className="font-semibold text-lg">待办事项</h2>
-            </div>
-            <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
-              {todos.length === 0 ? (
-                <p className="text-sm text-blue-400 italic">暂无待办事项</p>
-              ) : (
-                todos.map(t => (
-                  <div
-                    key={t.id}
-                    onClick={() => onEditRecord(t)}
-                    className="bg-white p-3 rounded-lg border border-blue-200 shadow-sm cursor-pointer hover:shadow-md transition-shadow flex items-center justify-between"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onCheckTodo(t);
-                        }}
-                        className="text-gray-400 hover:text-blue-600 transition-colors"
-                      >
-                        <CheckSquare className="w-5 h-5" />
-                      </button>
-                      <span className="font-medium text-gray-800">{t.title}</span>
-                    </div>
-                    {t.date && (
-                      <span className="text-xs font-medium text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
-                        {t.date}
-                      </span>
-                    )}
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
+    <div className="flex-1 flex flex-col h-full bg-gray-50 overflow-hidden">
+      {/* Top Header for Project Name */}
+      <div className="px-4 py-3 border-b border-gray-200 bg-white flex justify-between items-center shrink-0">
+        <h1 className="text-lg font-bold text-gray-900 truncate pr-4">{project.name}</h1>
+        <div className="flex items-center space-x-2 shrink-0">
+          {expandedSection === null && (
+            <button
+              onClick={() => setShowOverview(!showOverview)}
+              className="text-xs flex items-center text-gray-500 hover:text-gray-700 bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded transition-colors"
+            >
+              {showOverview ? <ChevronUp className="w-3.5 h-3.5 mr-1" /> : <ChevronDown className="w-3.5 h-3.5 mr-1" />}
+              {showOverview ? '收起概览' : '展开概览'}
+            </button>
+          )}
+          {expandedSection !== null && (
+            <button onClick={() => setExpandedSection(null)} className="text-xs flex items-center text-gray-500 hover:text-gray-700 bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded transition-colors">
+              <Minimize2 className="w-3.5 h-3.5 mr-1" /> 退出全屏
+            </button>
+          )}
         </div>
       </div>
 
-      <div className="flex-1 overflow-x-auto p-6">
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCorners}
-          onDragStart={handleDragStart}
-          onDragOver={handleDragOver}
-          onDragEnd={handleDragEnd}
-        >
-          <div className="flex space-x-4 h-full">
-            {categories.sort((a, b) => a.order - b.order).map(category => (
-              <CategoryColumn
-                key={category.id}
-                category={category}
-                records={records
-                  .filter(r => r.categoryId === category.id)
-                  .sort((a, b) => a.order - b.order)}
-                onAddRecord={onAddRecord}
-                onEditRecord={onEditRecord}
-                onCheckTodo={onCheckTodo}
-              />
-            ))}
+      <div className="flex-1 overflow-hidden flex flex-col">
+        {/* Top Section (Milestones & Todos) */}
+        {expandedSection !== 'kanban' && showOverview && (
+          <div className={`p-4 bg-white border-b border-gray-200 ${expandedSection ? 'flex-1 overflow-hidden' : 'shrink-0'}`}>
+            <div className={`grid gap-4 h-full ${expandedSection ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
+              
+              {/* Milestones Area */}
+              {(expandedSection === null || expandedSection === 'milestones') && (
+                <div className={`bg-red-50 rounded-xl p-3 border border-red-100 shadow-sm flex flex-col ${expandedSection === 'milestones' ? 'h-full' : ''}`}>
+                  <div className="flex items-center justify-between mb-2 text-red-700 shrink-0">
+                    <div className="flex items-center">
+                      <Flag className="w-4 h-4 mr-1.5" />
+                      <h2 className="font-semibold text-sm">项目里程碑</h2>
+                    </div>
+                    <button onClick={() => setExpandedSection(expandedSection === 'milestones' ? null : 'milestones')} className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-100 transition-colors">
+                      {expandedSection === 'milestones' ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                  <div className={`space-y-2 overflow-y-auto pr-2 ${expandedSection === 'milestones' ? 'flex-1' : 'max-h-32'}`}>
+                    {milestones.length === 0 ? (
+                      <p className="text-xs text-red-400 italic">暂无里程碑记录</p>
+                    ) : (
+                      milestones.map(m => (
+                        <div
+                          key={m.id}
+                          onClick={() => onEditRecord(m)}
+                          className="bg-white p-2 rounded-md border border-red-200 shadow-sm cursor-pointer hover:shadow-md transition-shadow flex justify-between items-center"
+                        >
+                          <span className="text-xs font-medium text-gray-800">{m.title}</span>
+                          <span className="text-[10px] font-medium text-red-600 bg-red-100 px-1.5 py-0.5 rounded-full">
+                            {m.date}
+                          </span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* To-Do Area */}
+              {(expandedSection === null || expandedSection === 'todos') && (
+                <div className={`bg-blue-50 rounded-xl p-3 border border-blue-100 shadow-sm flex flex-col ${expandedSection === 'todos' ? 'h-full' : ''}`}>
+                  <div className="flex items-center justify-between mb-2 text-blue-700 shrink-0">
+                    <div className="flex items-center">
+                      <CheckSquare className="w-4 h-4 mr-1.5" />
+                      <h2 className="font-semibold text-sm">待办事项</h2>
+                    </div>
+                    <button onClick={() => setExpandedSection(expandedSection === 'todos' ? null : 'todos')} className="text-blue-500 hover:text-blue-700 p-1 rounded hover:bg-blue-100 transition-colors">
+                      {expandedSection === 'todos' ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                  <div className={`space-y-2 overflow-y-auto pr-2 ${expandedSection === 'todos' ? 'flex-1' : 'max-h-32'}`}>
+                    {todos.length === 0 ? (
+                      <p className="text-xs text-blue-400 italic">暂无待办事项</p>
+                    ) : (
+                      todos.map(t => (
+                        <div
+                          key={t.id}
+                          onClick={() => onEditRecord(t)}
+                          className="bg-white p-2 rounded-md border border-blue-200 shadow-sm cursor-pointer hover:shadow-md transition-shadow flex items-center justify-between"
+                        >
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onCheckTodo(t);
+                              }}
+                              className="text-gray-400 hover:text-blue-600 transition-colors"
+                            >
+                              <CheckSquare className="w-4 h-4" />
+                            </button>
+                            <span className="text-xs font-medium text-gray-800">{t.title}</span>
+                          </div>
+                          {t.date && (
+                            <span className="text-[10px] font-medium text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded-full">
+                              {t.date}
+                            </span>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-          
-          <DragOverlay>
-            {activeRecord ? (
-              <RecordCard
-                record={activeRecord}
-                onClick={() => {}}
-                isOverlay
-              />
-            ) : null}
-          </DragOverlay>
-        </DndContext>
+        )}
+
+        {/* Kanban Area */}
+        {(expandedSection === null || expandedSection === 'kanban') && (
+          <div className="flex-1 flex flex-col overflow-hidden bg-gray-50">
+            {expandedSection === null && (
+               <div className="px-4 py-2 flex justify-between items-center border-b border-gray-200 bg-white shrink-0">
+                 <div className="flex items-center text-gray-600">
+                   <LayoutDashboard className="w-4 h-4 mr-1.5" />
+                   <h2 className="font-semibold text-sm">看板视图</h2>
+                 </div>
+                 <button onClick={() => setExpandedSection('kanban')} className="text-gray-500 hover:text-gray-700 p-1 rounded hover:bg-gray-100 transition-colors">
+                   <Maximize2 className="w-3.5 h-3.5" />
+                 </button>
+               </div>
+            )}
+            <div className="flex-1 overflow-x-auto p-4">
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCorners}
+                onDragStart={handleDragStart}
+                onDragOver={handleDragOver}
+                onDragEnd={handleDragEnd}
+              >
+                <div className="flex space-x-4 h-full">
+                  {categories.sort((a, b) => a.order - b.order).map(category => (
+                    <CategoryColumn
+                      key={category.id}
+                      category={category}
+                      records={records
+                        .filter(r => r.categoryId === category.id)
+                        .sort((a, b) => a.order - b.order)}
+                      onAddRecord={onAddRecord}
+                      onEditRecord={onEditRecord}
+                      onCheckTodo={onCheckTodo}
+                    />
+                  ))}
+                </div>
+                
+                <DragOverlay>
+                  {activeRecord ? (
+                    <RecordCard
+                      record={activeRecord}
+                      onClick={() => {}}
+                      isOverlay
+                    />
+                  ) : null}
+                </DragOverlay>
+              </DndContext>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Project } from '../types';
 import { cn } from '../utils';
-import { Folder, Plus, MoreVertical, Trash2, Edit2 } from 'lucide-react';
+import { Folder, Plus, MoreVertical, Trash2, Edit2, X } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -28,6 +28,8 @@ interface SidebarProps {
   onUpdateProject: (id: string, name: string) => void;
   onDeleteProject: (id: string) => void;
   onReorderProjects: (projects: Project[]) => void;
+  isOpen: boolean;
+  onClose: () => void;
 }
 
 function SortableProjectItem({
@@ -134,6 +136,8 @@ export function Sidebar({
   onUpdateProject,
   onDeleteProject,
   onReorderProjects,
+  isOpen,
+  onClose,
 }: SidebarProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [newName, setNewName] = useState('');
@@ -170,63 +174,88 @@ export function Sidebar({
   };
 
   return (
-    <div className="w-64 bg-gray-50 border-r border-gray-200 flex flex-col h-full">
-      <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-        <h2 className="font-semibold text-gray-800">项目档案</h2>
-        <button
-          onClick={() => setIsAdding(true)}
-          className="p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-        </button>
-      </div>
-
-      <div className="flex-1 overflow-y-auto p-2">
-        {isAdding && (
-          <div className="px-3 py-2 mb-2">
-            <input
-              autoFocus
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              onBlur={() => {
-                if (!newName.trim()) setIsAdding(false);
-                else handleAdd();
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleAdd();
-                if (e.key === 'Escape') {
-                  setNewName('');
-                  setIsAdding(false);
-                }
-              }}
-              placeholder="新项目名称..."
-              className="w-full bg-white border border-blue-300 rounded px-2 py-1 text-sm outline-none"
-            />
+    <>
+      {/* Mobile Overlay */}
+      {isOpen && (
+        <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={onClose} />
+      )}
+      
+      <div className={`
+        fixed inset-y-0 left-0 z-50 bg-gray-50 border-r border-gray-200 overflow-hidden
+        transform transition-all duration-300 ease-in-out shrink-0
+        ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+        md:relative md:translate-x-0
+        ${isOpen ? 'w-full sm:w-80 md:w-64' : 'w-full sm:w-80 md:w-0'}
+      `}>
+        <div className="w-full sm:w-80 md:w-64 h-full flex flex-col">
+          <div className="p-4 border-b border-gray-200 flex items-center justify-between shrink-0">
+            <h2 className="font-semibold text-gray-800">项目档案</h2>
+            <div className="flex items-center space-x-1">
+              <button
+                onClick={() => setIsAdding(true)}
+                className="p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+              <button onClick={onClose} className="md:hidden p-1 text-gray-400 hover:text-gray-600 rounded-md">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
-        )}
 
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext
-            items={projects.map(p => p.id)}
-            strategy={verticalListSortingStrategy}
-          >
-            {projects.sort((a, b) => a.order - b.order).map((project) => (
-              <SortableProjectItem
-                key={project.id}
-                project={project}
-                isActive={activeProjectId === project.id}
-                onSelect={() => onSelectProject(project.id)}
-                onUpdate={onUpdateProject}
-                onDelete={onDeleteProject}
-              />
-            ))}
-          </SortableContext>
-        </DndContext>
+          <div className="flex-1 overflow-y-auto p-2">
+            {isAdding && (
+              <div className="px-3 py-2 mb-2">
+                <input
+                  autoFocus
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  onBlur={() => {
+                    if (!newName.trim()) setIsAdding(false);
+                    else handleAdd();
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleAdd();
+                    if (e.key === 'Escape') {
+                      setNewName('');
+                      setIsAdding(false);
+                    }
+                  }}
+                  placeholder="新项目名称..."
+                  className="w-full bg-white border border-blue-300 rounded px-2 py-1 text-sm outline-none"
+                />
+              </div>
+            )}
+
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={projects.map(p => p.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                {projects.sort((a, b) => a.order - b.order).map((project) => (
+                  <SortableProjectItem
+                    key={project.id}
+                    project={project}
+                    isActive={activeProjectId === project.id}
+                    onSelect={() => {
+                      onSelectProject(project.id);
+                      if (window.innerWidth < 768) {
+                        onClose();
+                      }
+                    }}
+                    onUpdate={onUpdateProject}
+                    onDelete={onDeleteProject}
+                  />
+                ))}
+              </SortableContext>
+            </DndContext>
+          </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
