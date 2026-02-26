@@ -1,0 +1,265 @@
+import React, { useState, useRef } from 'react';
+import { useStore } from './hooks/useStore';
+import { Sidebar } from './components/Sidebar';
+import { ProjectView } from './components/ProjectView';
+import { RecordModal } from './components/RecordModal';
+import { CategoryManager } from './components/CategoryManager';
+import { ConfirmModal } from './components/ConfirmModal';
+import { RecordItem } from './types';
+import { Settings, Download, Upload } from 'lucide-react';
+
+export default function App() {
+  const {
+    state,
+    addProject,
+    updateProject,
+    deleteProject,
+    reorderProjects,
+    addCategory,
+    updateCategory,
+    deleteCategory,
+    reorderCategories,
+    addRecord,
+    updateRecord,
+    deleteRecord,
+    moveRecord,
+    importData
+  } = useStore();
+
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(
+    state.projects.length > 0 ? state.projects[0].id : null
+  );
+
+  const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState(false);
+  
+  const [recordModalState, setRecordModalState] = useState<{
+    isOpen: boolean;
+    categoryId?: string;
+    record?: Partial<RecordItem>;
+  }>({ isOpen: false });
+
+  const [confirmState, setConfirmState] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const activeProject = state.projects.find(p => p.id === activeProjectId);
+  const projectRecords = state.records.filter(r => r.projectId === activeProjectId);
+  const projectCategories = state.categories.filter(c => c.projectId === activeProjectId);
+
+  const confirmAction = (title: string, message: string, onConfirm: () => void) => {
+    setConfirmState({
+      isOpen: true,
+      title,
+      message,
+      onConfirm: () => {
+        onConfirm();
+        setConfirmState(prev => ({ ...prev, isOpen: false }));
+      }
+    });
+  };
+
+  const handleDeleteProject = (id: string) => {
+    confirmAction(
+      '删除项目',
+      '确定删除该项目吗？相关的所有记录将一并删除，且无法恢复。',
+      () => {
+        deleteProject(id);
+        if (activeProjectId === id) {
+          const remainingProjects = state.projects.filter(p => p.id !== id);
+          setActiveProjectId(remainingProjects.length > 0 ? remainingProjects[0].id : null);
+        }
+      }
+    );
+  };
+
+  const handleDeleteCategory = (id: string) => {
+    confirmAction(
+      '删除分类',
+      '确定删除该分类吗？该分类下的所有记录将一并删除，且无法恢复。',
+      () => {
+        deleteCategory(id);
+      }
+    );
+  };
+
+  const handleDeleteRecord = (id: string) => {
+    confirmAction(
+      '删除记录',
+      '确定删除此记录吗？删除后无法恢复。',
+      () => {
+        deleteRecord(id);
+      }
+    );
+  };
+
+  const handleExport = () => {
+    const dataStr = JSON.stringify(state, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+    const exportFileDefaultName = `project_archive_${new Date().toISOString().split('T')[0]}.json`;
+
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
+  };
+
+  const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target?.result as string);
+        if (data.projects && data.categories && data.records) {
+          importData(data);
+          if (data.projects.length > 0) {
+            setActiveProjectId(data.projects[0].id);
+          }
+        } else {
+          alert('无效的数据格式');
+        }
+      } catch (error) {
+        alert('解析文件失败');
+      }
+    };
+    reader.readAsText(file);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleCheckTodo = (record: RecordItem) => {
+    if (record.type === 'todo') {
+      updateRecord(record.id, {
+        type: record.date ? 'milestone' : 'normal',
+      });
+    }
+  };
+
+  return (
+    <div className="flex h-screen bg-gray-100 font-sans text-gray-900">
+      {/* Sidebar */}
+      <Sidebar
+        projects={state.projects}
+        activeProjectId={activeProjectId}
+        onSelectProject={setActiveProjectId}
+        onAddProject={addProject}
+        onUpdateProject={updateProject}
+        onDeleteProject={handleDeleteProject}
+        onReorderProjects={reorderProjects}
+      />
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Header */}
+        <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between shadow-sm z-10">
+          <h1 className="text-xl font-bold text-gray-800">工作记录台</h1>
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={() => setIsCategoryManagerOpen(true)}
+              className="flex items-center px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+            >
+              <Settings className="w-4 h-4 mr-1.5" />
+              分类管理
+            </button>
+            <div className="w-px h-5 bg-gray-300 mx-2"></div>
+            <button
+              onClick={handleExport}
+              className="flex items-center px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-md transition-colors"
+            >
+              <Download className="w-4 h-4 mr-1.5" />
+              导出
+            </button>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
+            >
+              <Upload className="w-4 h-4 mr-1.5" />
+              导入
+            </button>
+            <input
+              type="file"
+              accept=".json"
+              ref={fileInputRef}
+              onChange={handleImport}
+              className="hidden"
+            />
+          </div>
+        </header>
+
+        {/* Project View */}
+        {activeProject ? (
+          <ProjectView
+            project={activeProject}
+            categories={projectCategories}
+            records={projectRecords}
+            onAddRecord={(categoryId) => setRecordModalState({ isOpen: true, categoryId })}
+            onEditRecord={(record) => setRecordModalState({ isOpen: true, record })}
+            onCheckTodo={handleCheckTodo}
+            onMoveRecord={moveRecord}
+          />
+        ) : (
+          <div className="flex-1 flex items-center justify-center bg-gray-50">
+            <div className="text-center text-gray-500">
+              <p className="mb-2">请选择或创建一个项目</p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Modals */}
+      <RecordModal
+        isOpen={recordModalState.isOpen}
+        onClose={() => setRecordModalState({ isOpen: false })}
+        initialData={recordModalState.record}
+        categories={projectCategories}
+        defaultCategoryId={recordModalState.categoryId}
+        onSave={(recordData) => {
+          if (recordModalState.record?.id) {
+            updateRecord(recordModalState.record.id, recordData);
+          } else if (activeProjectId) {
+            addRecord({
+              ...recordData,
+              projectId: activeProjectId,
+              categoryId: recordData.categoryId || recordModalState.categoryId || projectCategories[0]?.id,
+            } as any);
+          }
+        }}
+        onDelete={handleDeleteRecord}
+      />
+
+      <CategoryManager
+        isOpen={isCategoryManagerOpen}
+        onClose={() => setIsCategoryManagerOpen(false)}
+        categories={projectCategories}
+        onAdd={(name) => {
+          if (activeProjectId) {
+            addCategory(name, activeProjectId);
+          }
+        }}
+        onUpdate={updateCategory}
+        onDelete={handleDeleteCategory}
+        onReorder={reorderCategories}
+      />
+
+      <ConfirmModal
+        isOpen={confirmState.isOpen}
+        title={confirmState.title}
+        message={confirmState.message}
+        onConfirm={confirmState.onConfirm}
+        onCancel={() => setConfirmState(prev => ({ ...prev, isOpen: false }))}
+      />
+    </div>
+  );
+}
