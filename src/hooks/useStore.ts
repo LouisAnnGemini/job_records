@@ -220,6 +220,13 @@ export function useStore() {
     });
   }, []);
 
+  const deleteLogs = useCallback((logIds: string[]) => {
+    setState(prev => ({
+      ...prev,
+      logs: (prev.logs || []).filter(l => !logIds.includes(l.id))
+    }));
+  }, []);
+
   const moveRecord = useCallback((recordId: string, newCategoryId: string, newOrder: number) => {
     setState(prev => {
       const record = prev.records.find(r => r.id === recordId);
@@ -290,6 +297,7 @@ export function useStore() {
     updateRecord,
     deleteRecord,
     moveRecord,
-    importData
+    importData,
+    deleteLogs,
   };
 }

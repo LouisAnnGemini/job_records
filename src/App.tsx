@@ -25,7 +25,8 @@ export default function App() {
     updateRecord,
     deleteRecord,
     moveRecord,
-    importData
+    importData,
+    deleteLogs
   } = useStore();
 
   const [activeProjectId, setActiveProjectId] = useState<string | null>(
@@ -302,6 +303,7 @@ export default function App() {
         onClose={() => setIsLogsModalOpen(false)}
         logs={projectLogs}
         projectName={activeProject?.name || ''}
+        onDeleteLogs={deleteLogs}
       />
 
       <ConfirmModal
