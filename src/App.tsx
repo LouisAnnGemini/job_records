@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { useStore } from './hooks/useStore';
 import { Sidebar } from './components/Sidebar';
 import { ProjectView } from './components/ProjectView';
@@ -320,6 +321,7 @@ export default function App() {
         onConfirm={confirmState.onConfirm}
         onCancel={() => setConfirmState(prev => ({ ...prev, isOpen: false }))}
       />
+      <SpeedInsights />
     </div>
   );
 }
