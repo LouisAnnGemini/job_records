@@ -9,6 +9,7 @@ import { QuickAddModal } from './components/QuickAddModal';
 import { ProjectLogsModal } from './components/ProjectLogsModal';
 import { RecordItem } from './types';
 import { Settings, Download, Upload, Menu, Plus, Clock } from 'lucide-react';
+import { Analytics } from '@vercel/analytics/react';
 
 export default function App() {
   const {
@@ -320,6 +321,7 @@ export default function App() {
         onConfirm={confirmState.onConfirm}
         onCancel={() => setConfirmState(prev => ({ ...prev, isOpen: false }))}
       />
+      <Analytics />
     </div>
   );
 }
