@@ -8,9 +8,10 @@ interface ProjectLogsModalProps {
   logs: ProjectLog[];
   projectName: string;
   onDeleteLogs: (logIds: string[]) => void;
+  onConfirmDelete: (ids: string[], onConfirm: () => void) => void;
 }
 
-export function ProjectLogsModal({ isOpen, onClose, logs, projectName, onDeleteLogs }: ProjectLogsModalProps) {
+export function ProjectLogsModal({ isOpen, onClose, logs, projectName, onDeleteLogs, onConfirmDelete }: ProjectLogsModalProps) {
   const [filterType, setFilterType] = useState<string>('all');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
@@ -77,10 +78,12 @@ export function ProjectLogsModal({ isOpen, onClose, logs, projectName, onDeleteL
 
   const handleDeleteSelected = () => {
     if (selectedIds.size === 0) return;
-    if (window.confirm(`确定要删除选中的 ${selectedIds.size} 条日志吗？`)) {
+    console.log('handleDeleteSelected:', Array.from(selectedIds));
+    
+    onConfirmDelete(Array.from(selectedIds), () => {
       onDeleteLogs(Array.from(selectedIds));
       setSelectedIds(new Set());
-    }
+    });
   };
 
   const handleCopySelected = () => {

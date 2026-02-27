@@ -79,7 +79,18 @@ export function QuickAddModal({ isOpen, onClose, onSave, projects, categories, a
       date: date || undefined,
       categoryId,
     });
-    onClose();
+    
+    // Reset only title and content for batch adding
+    setTitle('');
+    setContent('');
+    // Keep projectId, categoryId, type, and date as is
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSave();
+    }
   };
 
   return (
@@ -131,8 +142,10 @@ export function QuickAddModal({ isOpen, onClose, onSave, projects, categories, a
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              onKeyDown={handleKeyDown}
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="记录标题"
+              placeholder="记录标题 (按回车快速保存)"
+              autoFocus
             />
           </div>
 

@@ -221,10 +221,16 @@ export function useStore() {
   }, []);
 
   const deleteLogs = useCallback((logIds: string[]) => {
-    setState(prev => ({
-      ...prev,
-      logs: (prev.logs || []).filter(l => !logIds.includes(l.id))
-    }));
+    console.log('deleteLogs called with:', logIds);
+    setState(prev => {
+      const currentLogs = prev.logs || [];
+      const newLogs = currentLogs.filter(l => !logIds.includes(l.id));
+      console.log('Logs after deletion:', newLogs.length);
+      return {
+        ...prev,
+        logs: newLogs
+      };
+    });
   }, []);
 
   const moveRecord = useCallback((recordId: string, newCategoryId: string, newOrder: number) => {

@@ -10,6 +10,7 @@ export interface RecordItem {
   date?: string; // YYYY-MM-DD
   createdAt: number;
   order: number;
+  parentId?: string;
 }
 
 export interface Category {

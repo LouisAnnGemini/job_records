@@ -7,8 +7,9 @@ import { CategoryManager } from './components/CategoryManager';
 import { ConfirmModal } from './components/ConfirmModal';
 import { QuickAddModal } from './components/QuickAddModal';
 import { ProjectLogsModal } from './components/ProjectLogsModal';
+import { TodoHierarchyModal } from './components/TodoHierarchyModal';
 import { RecordItem } from './types';
-import { Settings, Download, Upload, Menu, Plus, Clock } from 'lucide-react';
+import { Settings, Download, Upload, Menu, Plus, Clock, GitMerge } from 'lucide-react';
 
 export default function App() {
   const {
@@ -37,6 +38,7 @@ export default function App() {
   const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState(false);
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
   const [isLogsModalOpen, setIsLogsModalOpen] = useState(false);
+  const [isTodoHierarchyOpen, setIsTodoHierarchyOpen] = useState(false);
   
   const [recordModalState, setRecordModalState] = useState<{
     isOpen: boolean;
@@ -184,6 +186,15 @@ export default function App() {
           </div>
           <div className="flex items-center space-x-1 sm:space-x-2">
             <button
+              onClick={() => setIsTodoHierarchyOpen(true)}
+              className="flex items-center px-2 py-1 text-xs font-medium text-gray-600 hover:text-orange-600 hover:bg-orange-50 rounded-md transition-colors"
+              title="待办事项思维导图"
+            >
+              <GitMerge className="w-4 h-4 sm:w-3.5 sm:h-3.5 sm:mr-1" />
+              <span className="hidden sm:inline">待办导图</span>
+            </button>
+            <div className="w-px h-4 bg-gray-300 mx-1"></div>
+            <button
               onClick={() => setIsLogsModalOpen(true)}
               className="flex items-center px-2 py-1 text-xs font-medium text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-md transition-colors"
             >
@@ -304,7 +315,27 @@ export default function App() {
         logs={projectLogs}
         projectName={activeProject?.name || ''}
         onDeleteLogs={deleteLogs}
+        onConfirmDelete={(ids, onConfirm) => {
+          confirmAction(
+            '删除日志',
+            `确定要删除选中的 ${ids.length} 条日志吗？`,
+            onConfirm
+          );
+        }}
       />
+
+      {activeProject && (
+        <TodoHierarchyModal
+          isOpen={isTodoHierarchyOpen}
+          onClose={() => setIsTodoHierarchyOpen(false)}
+          project={activeProject}
+          categories={projectCategories}
+          records={projectRecords}
+          onAddRecord={(record) => addRecord(record as any)}
+          onUpdateRecord={updateRecord}
+          onMoveRecord={moveRecord}
+        />
+      )}
 
       <ConfirmModal
         isOpen={confirmState.isOpen}
